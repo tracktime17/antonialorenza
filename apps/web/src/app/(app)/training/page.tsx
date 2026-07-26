@@ -1,0 +1,100 @@
+import { createClient } from "@/lib/supabase/server";
+import { getActiveZoneSet, getRaces, getWorkoutHistoryForPmc, getWorkoutsInRange } from "@/lib/data";
+import { PROFILE_ID } from "@/lib/profile";
+import { computePmcSeries, toISODate, tsbLabel } from "@antonia-os/domain";
+import { TrainingCharts } from "@/components/training/training-charts";
+import { RaceList } from "@/components/training/race-list";
+
+export default async function TrainingPage() {
+  const supabase = createClient();
+
+  const today = new Date();
+  const todayIso = toISODate(today);
+  const sinceDate = toISODate(new Date(today.getFullYear(), today.getMonth() - 7, today.getDate()));
+
+  const [zoneSet, history, races, monthWorkouts] = await Promise.all([
+    getActiveZoneSet(supabase, PROFILE_ID, todayIso),
+    getWorkoutHistoryForPmc(supabase, PROFILE_ID, sinceDate),
+    getRaces(supabase, PROFILE_ID),
+    getWorkoutsInRange(
+      supabase,
+      PROFILE_ID,
+      toISODate(new Date(today.getFullYear(), today.getMonth(), 1)),
+      toISODate(new Date(today.getFullYear(), today.getMonth() + 1, 0))
+    ),
+  ]);
+
+  const dailyTss = (history ?? []).map((w) => ({ date: w.date, tss: w.tss ?? 0 }));
+  const pmc = computePmcSeries(dailyTss);
+  const latest = pmc[pmc.length - 1];
+
+  const byDiscipline: Record<"run" | "bike" | "swim", { tss: number; hours: number }> = {
+    run: { tss: 0, hours: 0 },
+    bike: { tss: 0, hours: 0 },
+    swim: { tss: 0, hours: 0 },
+  };
+  let totalTss = 0;
+  let totalHours = 0;
+  for (const w of monthWorkouts ?? []) {
+    if (w.kind !== "actual") continue;
+    const hrs = (w.duration_min ?? 0) / 60;
+    totalTss += w.tss ?? 0;
+    totalHours += hrs;
+    if (w.discipline === "run" || w.discipline === "bike" || w.discipline === "swim") {
+      byDiscipline[w.discipline].tss += w.tss ?? 0;
+      byDiscipline[w.discipline].hours += hrs;
+    }
+  }
+
+  return (
+    <div className="space-y-8">
+      <div>
+        <p className="text-[11px] uppercase tracking-widest text-app-muted">calibracion_activa</p>
+        <h1 className="text-xl font-extrabold text-app-text-bright">Entrenamiento</h1>
+        <p className="mt-1 text-xs text-app-muted">
+          {zoneSet ? (
+            <>
+              Umbral running {secToMMSS(zoneSet.run_threshold_sec_per_km ?? 0)}/km · FTP {zoneSet.bike_ftp_watts}W ·
+              CSS {secToMMSS(zoneSet.swim_css_sec_per_100m ?? 0)}/100m · desde {zoneSet.effective_from}
+            </>
+          ) : (
+            "sin calibracion registrada"
+          )}
+        </p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <StatCard label="running.tss" value={Math.round(byDiscipline.run.tss)} sub={`${byDiscipline.run.hours.toFixed(1)} h`} color="text-run" />
+        <StatCard label="ciclismo.tss" value={Math.round(byDiscipline.bike.tss)} sub={`${byDiscipline.bike.hours.toFixed(1)} h`} color="text-bike" />
+        <StatCard label="natacion.tss" value={Math.round(byDiscipline.swim.tss)} sub={`${byDiscipline.swim.hours.toFixed(1)} h`} color="text-swim" />
+        <StatCard label="tss_total_mes" value={Math.round(totalTss)} sub={`${totalHours.toFixed(1)} h totales`} color="text-app-text-bright" />
+      </div>
+
+      <div className="grid grid-cols-3 gap-3">
+        <StatCard label="CTL (fitness)" value={latest?.ctl ?? 0} sub="carga cronica, 42 dias" color="text-bike" />
+        <StatCard label="ATL (fatiga)" value={latest?.atl ?? 0} sub="carga aguda, 7 dias" color="text-nutri" />
+        <StatCard label="TSB (forma)" value={latest?.tsb ?? 0} sub={latest ? tsbLabel(latest.tsb) : "-"} color="text-run" />
+      </div>
+
+      <TrainingCharts pmc={pmc} />
+
+      <RaceList races={races ?? []} />
+    </div>
+  );
+}
+
+function StatCard({ label, value, sub, color }: { label: string; value: number; sub: string; color: string }) {
+  return (
+    <div className="rounded border border-app-border bg-app-panel p-3.5">
+      <h3 className="mb-2 text-[10.5px] font-semibold uppercase tracking-wide text-app-muted">{label}</h3>
+      <div className={`text-xl font-bold ${color}`}>{value}</div>
+      <div className="mt-0.5 text-[10.5px] text-app-muted">{sub}</div>
+    </div>
+  );
+}
+
+function secToMMSS(sec: number) {
+  const m = Math.floor(sec / 60);
+  const s = Math.round(sec % 60);
+  return `${m}:${String(s).padStart(2, "0")}`;
+}

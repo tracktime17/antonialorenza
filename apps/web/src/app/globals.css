@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+:root {
+  --app-bg: #f4f5f7;
+  --app-panel: #ffffff;
+  --app-panel-2: #f7f8fa;
+  --app-panel-3: #eff1f4;
+  --app-border: #e2e5e9;
+  --app-border-bright: #c7ccd2;
+  --app-text: #3a4048;
+  --app-text-bright: #14181d;
+  --app-muted: #6b7280;
+  --app-muted-2: #9aa1a9;
+
+  --color-run: #e85a0c;
+  --color-run-dim: rgba(232, 89, 12, 0.1);
+  --color-bike: #0072ce;
+  --color-bike-dim: rgba(0, 114, 206, 0.1);
+  --color-swim: #00a5c4;
+  --color-swim-dim: rgba(0, 165, 196, 0.1);
+  --color-other: #7c4ddb;
+  --color-income: #16a34a;
+  --color-expense: #dc2626;
+  --color-savings: #d97706;
+  --color-nutri: #db2777;
+  --color-planned: #d97706;
+}
+
+@theme inline {
+  --font-sans: var(--font-inter);
+
+  --color-app-bg: var(--app-bg);
+  --color-app-panel: var(--app-panel);
+  --color-app-panel-2: var(--app-panel-2);
+  --color-app-panel-3: var(--app-panel-3);
+  --color-app-border: var(--app-border);
+  --color-app-border-bright: var(--app-border-bright);
+  --color-app-text: var(--app-text);
+  --color-app-text-bright: var(--app-text-bright);
+  --color-app-muted: var(--app-muted);
+  --color-app-muted-2: var(--app-muted-2);
+
+  --color-run: var(--color-run);
+  --color-run-dim: var(--color-run-dim);
+  --color-bike: var(--color-bike);
+  --color-bike-dim: var(--color-bike-dim);
+  --color-swim: var(--color-swim);
+  --color-swim-dim: var(--color-swim-dim);
+  --color-other: var(--color-other);
+  --color-income: var(--color-income);
+  --color-expense: var(--color-expense);
+  --color-savings: var(--color-savings);
+  --color-nutri: var(--color-nutri);
+  --color-planned: var(--color-planned);
+}
+
+body {
+  background: var(--app-bg);
+  color: var(--app-text);
+}

@@ -1,0 +1,8 @@
+{
+  "name": "antonia-os",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
+}
