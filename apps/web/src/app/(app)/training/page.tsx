@@ -1,27 +1,56 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveZoneSet, getRaces, getWorkoutHistoryForPmc, getWorkoutsInRange } from "@/lib/data";
 import { PROFILE_ID } from "@/lib/profile";
-import { computePmcSeries, toISODate, tsbLabel } from "@antonia-os/domain";
+import { addMonths, computePmcSeries, toISODate, tsbLabel } from "@antonia-os/domain";
+import { CalendarView } from "@/components/calendar/calendar-view";
 import { TrainingCharts } from "@/components/training/training-charts";
 import { RaceList } from "@/components/training/race-list";
 
-export default async function TrainingPage() {
-  const supabase = createClient();
+function parseMonthParam(month?: string) {
+  if (month && /^\d{4}-\d{2}$/.test(month)) {
+    const [y, m] = month.split("-").map(Number);
+    return new Date(y, m - 1, 1);
+  }
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), 1);
+}
+
+function monthKey(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function capitalize(s: string) {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+function secToMMSS(sec: number) {
+  const m = Math.floor(sec / 60);
+  const s = Math.round(sec % 60);
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+export default async function TrainingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ month?: string }>;
+}) {
+  const { month } = await searchParams;
+  const monthDate = parseMonthParam(month);
+  const monthStart = toISODate(new Date(monthDate.getFullYear(), monthDate.getMonth(), 1));
+  const monthEnd = toISODate(new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0));
 
   const today = new Date();
   const todayIso = toISODate(today);
   const sinceDate = toISODate(new Date(today.getFullYear(), today.getMonth() - 7, today.getDate()));
 
+  const supabase = createClient();
+
   const [zoneSet, history, races, monthWorkouts] = await Promise.all([
     getActiveZoneSet(supabase, PROFILE_ID, todayIso),
     getWorkoutHistoryForPmc(supabase, PROFILE_ID, sinceDate),
     getRaces(supabase, PROFILE_ID),
-    getWorkoutsInRange(
-      supabase,
-      PROFILE_ID,
-      toISODate(new Date(today.getFullYear(), today.getMonth(), 1)),
-      toISODate(new Date(today.getFullYear(), today.getMonth() + 1, 0))
-    ),
+    getWorkoutsInRange(supabase, PROFILE_ID, monthStart, monthEnd),
   ]);
 
   const dailyTss = (history ?? []).map((w) => ({ date: w.date, tss: w.tss ?? 0 }));
@@ -46,22 +75,49 @@ export default async function TrainingPage() {
     }
   }
 
+  const prevMonth = addMonths(monthDate, -1);
+  const nextMonth = addMonths(monthDate, 1);
+  const monthLabel = monthDate.toLocaleDateString("es-CL", { month: "long", year: "numeric" });
+
   return (
     <div className="space-y-8">
-      <div>
-        <p className="text-[11px] uppercase tracking-widest text-app-muted">calibracion_activa</p>
-        <h1 className="text-xl font-extrabold text-app-text-bright">Entrenamiento</h1>
-        <p className="mt-1 text-xs text-app-muted">
-          {zoneSet ? (
-            <>
-              Umbral running {secToMMSS(zoneSet.run_threshold_sec_per_km ?? 0)}/km · FTP {zoneSet.bike_ftp_watts}W ·
-              CSS {secToMMSS(zoneSet.swim_css_sec_per_100m ?? 0)}/100m · desde {zoneSet.effective_from}
-            </>
-          ) : (
-            "sin calibracion registrada"
-          )}
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-[11px] uppercase tracking-widest text-app-muted">
+            {zoneSet ? (
+              <>
+                Umbral running {secToMMSS(zoneSet.run_threshold_sec_per_km ?? 0)}/km · FTP {zoneSet.bike_ftp_watts}W ·
+                CSS {secToMMSS(zoneSet.swim_css_sec_per_100m ?? 0)}/100m · desde {zoneSet.effective_from}
+              </>
+            ) : (
+              "sin calibracion registrada"
+            )}
+          </p>
+          <h1 className="text-xl font-extrabold text-app-text-bright">{capitalize(monthLabel)}</h1>
+        </div>
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/training?month=${monthKey(prevMonth)}`}
+            className="rounded border border-app-border px-2.5 py-1 text-sm text-app-text hover:border-run hover:text-run"
+          >
+            ‹
+          </Link>
+          <Link
+            href={`/training?month=${monthKey(new Date())}`}
+            className="rounded border border-app-border px-3 py-1 text-xs text-app-text hover:border-run hover:text-run"
+          >
+            hoy
+          </Link>
+          <Link
+            href={`/training?month=${monthKey(nextMonth)}`}
+            className="rounded border border-app-border px-2.5 py-1 text-sm text-app-text hover:border-run hover:text-run"
+          >
+            ›
+          </Link>
+        </div>
       </div>
+
+      <CalendarView monthDate={monthDate.toISOString()} workouts={monthWorkouts ?? []} />
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <StatCard label="running.tss" value={Math.round(byDiscipline.run.tss)} sub={`${byDiscipline.run.hours.toFixed(1)} h`} color="text-run" />
@@ -91,10 +147,4 @@ function StatCard({ label, value, sub, color }: { label: string; value: number; 
       <div className="mt-0.5 text-[10.5px] text-app-muted">{sub}</div>
     </div>
   );
-}
-
-function secToMMSS(sec: number) {
-  const m = Math.floor(sec / 60);
-  const s = Math.round(sec % 60);
-  return `${m}:${String(s).padStart(2, "0")}`;
 }

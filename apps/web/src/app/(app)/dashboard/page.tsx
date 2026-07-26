@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import {
-  getLatestBodyMetric,
   getMealsInRange,
   getObjectives,
   getOpenIssuesAcrossProjects,
@@ -33,10 +32,9 @@ export default async function DashboardPage() {
   const monthStart = toISODate(new Date(today.getFullYear(), today.getMonth(), 1));
   const monthEnd = toISODate(new Date(today.getFullYear(), today.getMonth() + 1, 0));
 
-  const [profile, bodyMetric, upcomingRace, todaysWorkouts, todaysMeals, monthTransactions, subscriptions, projects, criticalIssues, objectives] =
+  const [profile, upcomingRace, todaysWorkouts, todaysMeals, monthTransactions, subscriptions, projects, criticalIssues, objectives] =
     await Promise.all([
       getProfile(supabase, PROFILE_ID),
-      getLatestBodyMetric(supabase, PROFILE_ID),
       getUpcomingRace(supabase, PROFILE_ID, todayIso),
       getWorkoutsInRange(supabase, PROFILE_ID, todayIso, todayIso),
       getMealsInRange(supabase, PROFILE_ID, todayIso, todayIso),
@@ -68,13 +66,6 @@ export default async function DashboardPage() {
       <div>
         <p className="text-[11px] uppercase tracking-widest text-app-muted">{greeting()}</p>
         <h1 className="text-2xl font-extrabold text-app-text-bright">{profile?.display_name ?? "Antonia"}</h1>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <MetricCard label="Sleep" value={bodyMetric?.sleep_hours ? `${bodyMetric.sleep_hours} h` : "—"} />
-        <MetricCard label="HRV" value={bodyMetric?.hrv ?? "—"} />
-        <MetricCard label="Body Battery" value={bodyMetric?.body_battery ?? "—"} />
-        <MetricCard label="Peso" value={bodyMetric?.weight_kg ? `${bodyMetric.weight_kg} kg` : "—"} />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -186,15 +177,6 @@ export default async function DashboardPage() {
           )}
         </Card>
       </div>
-    </div>
-  );
-}
-
-function MetricCard({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div className="rounded border border-app-border bg-app-panel p-3.5">
-      <h3 className="mb-2 text-[10.5px] font-semibold uppercase tracking-wide text-app-muted">{label}</h3>
-      <div className="text-xl font-bold text-app-text-bright">{value}</div>
     </div>
   );
 }

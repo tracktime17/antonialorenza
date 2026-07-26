@@ -1,15 +1,17 @@
 import Link from "next/link";
+import { NavDropdown } from "@/components/layout/nav-dropdown";
 
 const NAV = [
   { href: "/dashboard", label: "Dashboard" },
-  { href: "/calendar", label: "Calendario" },
-  { href: "/training", label: "Entrenamiento" },
+  { href: "/training", label: "Calendario" },
   { href: "/nutrition", label: "Nutricion" },
   { href: "/finance", label: "Finanzas" },
+];
+
+const MORE_NAV = [
   { href: "/projects", label: "Proyectos" },
   { href: "/objectives", label: "Objetivos" },
-  { href: "/analytics", label: "Analiticas" },
-  { href: "/ai", label: "IA" },
+  { href: "/analytics", label: "Analitica & IA" },
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -20,7 +22,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <span className="text-sm font-extrabold text-white">
             antonia<span className="text-run">_os</span>
           </span>
-          <nav className="flex gap-1">
+          <nav className="flex items-center gap-1">
             {NAV.map((item) => (
               <Link
                 key={item.href}
@@ -30,6 +32,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 {item.label}
               </Link>
             ))}
+            <NavDropdown label="Mas" items={MORE_NAV} />
           </nav>
         </div>
       </div>

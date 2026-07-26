@@ -99,7 +99,6 @@ export async function upsertWorkout(formData: FormData) {
     if (error) throw error;
   }
 
-  revalidatePath("/calendar");
   revalidatePath("/training");
   revalidatePath("/dashboard");
 }
@@ -108,7 +107,6 @@ export async function deleteWorkout(id: string) {
   const { supabase, profileId } = await requireProfileId();
   const { error } = await supabase.from("workouts").delete().eq("id", id).eq("profile_id", profileId);
   if (error) throw error;
-  revalidatePath("/calendar");
   revalidatePath("/training");
   revalidatePath("/dashboard");
 }

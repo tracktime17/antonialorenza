@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import {
   getActiveNutritionTarget,
+  getAiMessages,
   getBodyMetricsInRange,
   getMealsInRange,
   getTransactionsInRange,
@@ -12,6 +13,7 @@ import { computeCashflow, computeCompliance, toISODate, type TransactionType } f
 import { fmtCLP } from "@/lib/format";
 import { MetricLineChart } from "@/components/analytics/metric-line-chart";
 import { TssBarChart } from "@/components/analytics/tss-bar-chart";
+import { Chat } from "@/components/ai/chat";
 
 const RANGES = [
   { key: "3M", label: "3 meses" },
@@ -58,12 +60,13 @@ export default async function AnalyticsPage({
   const todayIso = toISODate(today);
 
   const supabase = createClient();
-  const [workouts, meals, transactions, bodyMetrics, nutritionTarget] = await Promise.all([
+  const [workouts, meals, transactions, bodyMetrics, nutritionTarget, aiHistory] = await Promise.all([
     getWorkoutsInRange(supabase, PROFILE_ID, startIso, todayIso),
     getMealsInRange(supabase, PROFILE_ID, startIso, todayIso),
     getTransactionsInRange(supabase, PROFILE_ID, startIso, todayIso),
     getBodyMetricsInRange(supabase, PROFILE_ID, startIso, todayIso),
     getActiveNutritionTarget(supabase, PROFILE_ID, todayIso),
+    getAiMessages(supabase, PROFILE_ID, 50),
   ]);
 
   const actualWorkouts = (workouts ?? []).filter((w) => w.kind === "actual");
@@ -128,7 +131,8 @@ export default async function AnalyticsPage({
   const bodyBatteryPoints = (bodyMetrics ?? []).filter((m) => m.body_battery != null).map((m) => ({ date: m.date, value: m.body_battery as number }));
 
   return (
-    <div className="space-y-8">
+    <div className="grid gap-6 lg:grid-cols-[1fr_380px] lg:items-start">
+      <div className="space-y-8">
       <div>
         <p className="text-[11px] uppercase tracking-widest text-app-muted">analiticas</p>
         <h1 className="text-xl font-extrabold text-app-text-bright">Analiticas</h1>
@@ -220,6 +224,12 @@ export default async function AnalyticsPage({
         Aun no se rastrean horas de estudio/horas productivas ni tiempo por proyecto (no hay time-tracking en Proyectos todavia) —
         quedan para una fase futura.
       </p>
+      </div>
+
+      <div className="lg:sticky lg:top-6">
+        <p className="mb-2 text-[11px] uppercase tracking-widest text-app-muted">ia</p>
+        <Chat initialMessages={(aiHistory ?? []).map((m) => ({ role: m.role as "user" | "assistant", content: m.content }))} />
+      </div>
     </div>
   );
 }

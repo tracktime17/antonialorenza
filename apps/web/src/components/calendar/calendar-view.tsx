@@ -103,21 +103,21 @@ export function CalendarView({ monthDate, workouts }: { monthDate: string; worko
                       <button
                         key={di}
                         onClick={() => setSelectedDate(key)}
-                        className={`flex min-h-[92px] flex-col rounded border p-1.5 text-left transition-colors ${
+                        className={`flex min-h-[92px] min-w-0 flex-col rounded border p-1.5 text-left transition-colors ${
                           isToday ? "border-run" : "border-app-border"
                         } bg-app-panel-2 hover:border-app-border-bright`}
                       >
                         <span className={`text-[11px] ${isToday ? "font-bold text-run" : "text-app-muted"}`}>
                           {d.getDate()}
                         </span>
-                        <div className="mt-1 flex flex-1 flex-col gap-0.5 overflow-hidden">
+                        <div className="mt-1 flex min-w-0 flex-1 flex-col gap-0.5 overflow-hidden">
                           {dayWorkouts.slice(0, 3).map((w) => (
                             <span
                               key={w.id}
                               className={
                                 w.kind === "planned"
-                                  ? "truncate rounded border border-dashed border-planned bg-white px-1.5 py-0.5 text-[9.5px] font-bold text-planned"
-                                  : `truncate rounded px-1.5 py-0.5 text-[9.5px] font-semibold text-white ${disciplineBg(
+                                  ? "block w-full truncate rounded border border-dashed border-planned bg-white px-1.5 py-0.5 text-[9.5px] font-bold text-planned"
+                                  : `block w-full truncate rounded px-1.5 py-0.5 text-[9.5px] font-semibold text-white ${disciplineBg(
                                       w.discipline
                                     )}`
                               }
