@@ -12,6 +12,7 @@ import {
   computeAccountBalances,
   computeBudgetStatus,
   computeCashflow,
+  toISODate,
   totalNetWorth,
   type TransactionType,
 } from "@antonia-os/domain";
@@ -137,7 +138,7 @@ export default async function FinancePage({
         <StatCard label="ahorro_acumulado" value={accumulatedSavings != null ? fmtCLP(accumulatedSavings) : "-"} color="text-savings" />
       </div>
 
-      <FinanceCalendarView monthDate={monthDate.toISOString()} transactions={monthTransactions ?? []} accounts={accounts ?? []} />
+      <FinanceCalendarView monthDate={toISODate(monthDate)} transactions={monthTransactions ?? []} accounts={accounts ?? []} />
 
       <div className="rounded border border-app-border bg-app-panel p-4">
         <h3 className="mb-3 text-[11px] uppercase tracking-wide text-app-muted">evolucion_cashflow (6 meses)</h3>

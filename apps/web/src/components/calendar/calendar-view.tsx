@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { buildMonthGrid, toISODate } from "@antonia-os/domain";
+import { buildMonthGrid, parseISODate, toISODate } from "@antonia-os/domain";
 import type { Tables } from "@/types/database.types";
 import { DayModal } from "./day-modal";
 import { WorkoutCard } from "./workout-card";
@@ -28,7 +28,7 @@ export function CalendarView({
   const [activeFilters, setActiveFilters] = useState<Set<string>>(new Set());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
-  const grid = useMemo(() => buildMonthGrid(new Date(monthDate)), [monthDate]);
+  const grid = useMemo(() => buildMonthGrid(parseISODate(monthDate)), [monthDate]);
 
   const allByDate = useMemo(() => {
     const map = new Map<string, Workout[]>();

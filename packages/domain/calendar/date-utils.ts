@@ -13,6 +13,20 @@ export function toISODate(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
+/**
+ * Parses a plain "YYYY-MM-DD" civil date into a local Date at midnight.
+ * Unlike `new Date(isoString)`, this never round-trips through a UTC instant,
+ * so the calendar day is stable regardless of the server's or the viewer's
+ * timezone (server on Vercel runs in UTC; browsers run in the viewer's local
+ * zone — going through `.toISOString()` + `new Date(...)` between them can
+ * shift the date by a day). Always use this to parse dates coming from the
+ * database or from another `toISODate` call.
+ */
+export function parseISODate(dateStr: string): Date {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
 /** Monday = 0 ... Sunday = 6, matching the lun/mar/mie/jue/vie/sab/dom header. */
 export function dowMondayFirst(date: Date): number {
   return (date.getDay() + 6) % 7;

@@ -128,7 +128,7 @@ export default async function TrainingPage({
 
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
         <div className="min-w-0 flex-1">
-          <CalendarView monthDate={monthDate.toISOString()} workouts={monthWorkouts ?? []} bodyMetrics={monthBodyMetrics ?? []} />
+          <CalendarView monthDate={toISODate(monthDate)} workouts={monthWorkouts ?? []} bodyMetrics={monthBodyMetrics ?? []} />
         </div>
         <SummaryPanel
           ctl={latest?.ctl ?? 0}
