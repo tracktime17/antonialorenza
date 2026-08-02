@@ -16,7 +16,7 @@ import {
   type TransactionType,
 } from "@antonia-os/domain";
 import { CashflowChart } from "@/components/finance/cashflow-chart";
-import { TransactionList } from "@/components/finance/transaction-list";
+import { FinanceCalendarView } from "@/components/finance/finance-calendar-view";
 import { AccountList } from "@/components/finance/account-list";
 import { BudgetList } from "@/components/finance/budget-list";
 import { SubscriptionList } from "@/components/finance/subscription-list";
@@ -75,6 +75,14 @@ export default async function FinancePage({
     (monthTransactions ?? []).map((t) => ({ amount: t.amount, type: t.type as TransactionType, category: t.category }))
   );
 
+  // "ahorro_acumulado" mirrors the original prototype: the most recent manually-logged
+  // savings-type entry in the month, not a sum (savings is tracked as a running balance
+  // you re-enter, not a per-transaction addition).
+  const savingsEntries = (monthTransactions ?? [])
+    .filter((t) => t.type === "savings")
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const accumulatedSavings = savingsEntries.length > 0 ? savingsEntries[savingsEntries.length - 1].amount : null;
+
   // Last 6 months cashflow for the chart (small N, one ranged query per month).
   const chartPoints: { month: string; income: number; expense: number }[] = [];
   for (let i = 5; i >= 0; i--) {
@@ -110,12 +118,26 @@ export default async function FinancePage({
         </div>
       </div>
 
+      <div className="flex flex-wrap gap-4 text-[10.5px] text-app-muted">
+        <span className="flex items-center gap-1.5">
+          <span className="h-1.5 w-1.5 rounded-sm bg-income" /> ingreso
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-1.5 w-1.5 rounded-sm bg-expense" /> egreso
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-1.5 w-1.5 rounded-sm bg-savings" /> ahorro
+        </span>
+      </div>
+
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <StatCard label="ingresos_mes" value={fmtCLP(cashflow.income)} color="text-income" />
         <StatCard label="gastos_mes" value={fmtCLP(cashflow.expense)} color="text-expense" />
         <StatCard label="balance_mes" value={fmtCLP(cashflow.balance)} color={cashflow.balance >= 0 ? "text-income" : "text-expense"} />
-        <StatCard label="patrimonio_total" value={fmtCLP(netWorth)} color="text-app-text-bright" />
+        <StatCard label="ahorro_acumulado" value={accumulatedSavings != null ? fmtCLP(accumulatedSavings) : "-"} color="text-savings" />
       </div>
+
+      <FinanceCalendarView monthDate={monthDate.toISOString()} transactions={monthTransactions ?? []} accounts={accounts ?? []} />
 
       <div className="rounded border border-app-border bg-app-panel p-4">
         <h3 className="mb-3 text-[11px] uppercase tracking-wide text-app-muted">evolucion_cashflow (6 meses)</h3>
@@ -124,13 +146,10 @@ export default async function FinancePage({
 
       <div className="grid gap-4 md:grid-cols-2">
         <BudgetList month={monthStr} statuses={budgetStatuses} />
-        <AccountList balances={balances} />
+        <AccountList balances={balances} netWorth={netWorth} />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <SubscriptionList subscriptions={subscriptions ?? []} />
-        <TransactionList transactions={monthTransactions ?? []} accounts={accounts ?? []} />
-      </div>
+      <SubscriptionList subscriptions={subscriptions ?? []} />
     </div>
   );
 }

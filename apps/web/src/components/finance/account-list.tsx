@@ -2,10 +2,15 @@ import { deleteAccount, upsertAccount } from "@/app/(app)/finance/actions";
 import type { AccountBalance } from "@antonia-os/domain";
 import { fmtCLP } from "@/lib/format";
 
-export function AccountList({ balances }: { balances: AccountBalance[] }) {
+export function AccountList({ balances, netWorth }: { balances: AccountBalance[]; netWorth: number }) {
   return (
     <div className="rounded border border-app-border bg-app-panel p-4">
-      <h3 className="mb-3 text-[11px] uppercase tracking-wide text-app-muted">cuentas</h3>
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className="text-[11px] uppercase tracking-wide text-app-muted">cuentas</h3>
+        <p className="text-[11px] text-app-muted">
+          patrimonio: <span className="font-bold text-app-text-bright">{fmtCLP(netWorth)}</span>
+        </p>
+      </div>
 
       <div className="mb-4 space-y-2">
         {balances.length === 0 && <p className="text-xs italic text-app-muted-2">Sin cuentas registradas.</p>}

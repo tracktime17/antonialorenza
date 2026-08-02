@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { getActiveZoneSet, getRaces, getWorkoutHistoryForPmc, getWorkoutsInRange } from "@/lib/data";
+import { getActiveZoneSet, getBodyMetricsInRange, getRaces, getWorkoutHistoryForPmc, getWorkoutsInRange } from "@/lib/data";
 import { PROFILE_ID } from "@/lib/profile";
 import { addMonths, computePmcSeries, toISODate, tsbLabel } from "@antonia-os/domain";
 import { CalendarView } from "@/components/calendar/calendar-view";
+import { SummaryPanel } from "@/components/training/summary-panel";
 import { TrainingCharts } from "@/components/training/training-charts";
 import { RaceList } from "@/components/training/race-list";
 
@@ -46,11 +47,12 @@ export default async function TrainingPage({
 
   const supabase = createClient();
 
-  const [zoneSet, history, races, monthWorkouts] = await Promise.all([
+  const [zoneSet, history, races, monthWorkouts, monthBodyMetrics] = await Promise.all([
     getActiveZoneSet(supabase, PROFILE_ID, todayIso),
     getWorkoutHistoryForPmc(supabase, PROFILE_ID, sinceDate),
     getRaces(supabase, PROFILE_ID),
     getWorkoutsInRange(supabase, PROFILE_ID, monthStart, monthEnd),
+    getBodyMetricsInRange(supabase, PROFILE_ID, monthStart, monthEnd),
   ]);
 
   const dailyTss = (history ?? []).map((w) => ({ date: w.date, tss: w.tss ?? 0 }));
@@ -63,16 +65,23 @@ export default async function TrainingPage({
     swim: { tss: 0, hours: 0 },
   };
   let totalTss = 0;
-  let totalHours = 0;
+  let totalDurationMin = 0;
+  let runKm = 0;
+  let bikeKm = 0;
+  let swimKm = 0;
+  let elevationM = 0;
   for (const w of monthWorkouts ?? []) {
     if (w.kind !== "actual") continue;
-    const hrs = (w.duration_min ?? 0) / 60;
     totalTss += w.tss ?? 0;
-    totalHours += hrs;
+    totalDurationMin += w.duration_min ?? 0;
+    elevationM += w.elevation_gain_m ?? 0;
     if (w.discipline === "run" || w.discipline === "bike" || w.discipline === "swim") {
       byDiscipline[w.discipline].tss += w.tss ?? 0;
-      byDiscipline[w.discipline].hours += hrs;
+      byDiscipline[w.discipline].hours += (w.duration_min ?? 0) / 60;
     }
+    if (w.discipline === "run") runKm += w.distance_km ?? 0;
+    if (w.discipline === "bike") bikeKm += w.distance_km ?? 0;
+    if (w.discipline === "swim") swimKm += w.distance_km ?? 0;
   }
 
   const prevMonth = addMonths(monthDate, -1);
@@ -117,19 +126,24 @@ export default async function TrainingPage({
         </div>
       </div>
 
-      <CalendarView monthDate={monthDate.toISOString()} workouts={monthWorkouts ?? []} />
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+        <div className="min-w-0 flex-1">
+          <CalendarView monthDate={monthDate.toISOString()} workouts={monthWorkouts ?? []} bodyMetrics={monthBodyMetrics ?? []} />
+        </div>
+        <SummaryPanel
+          ctl={latest?.ctl ?? 0}
+          atl={latest?.atl ?? 0}
+          tsb={latest?.tsb ?? 0}
+          tsbCaption={latest ? tsbLabel(latest.tsb) : undefined}
+          totals={{ durationMin: totalDurationMin, tss: totalTss, runKm, bikeKm, swimKm, elevationM }}
+        />
+      </div>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <StatCard label="running.tss" value={Math.round(byDiscipline.run.tss)} sub={`${byDiscipline.run.hours.toFixed(1)} h`} color="text-run" />
         <StatCard label="ciclismo.tss" value={Math.round(byDiscipline.bike.tss)} sub={`${byDiscipline.bike.hours.toFixed(1)} h`} color="text-bike" />
         <StatCard label="natacion.tss" value={Math.round(byDiscipline.swim.tss)} sub={`${byDiscipline.swim.hours.toFixed(1)} h`} color="text-swim" />
-        <StatCard label="tss_total_mes" value={Math.round(totalTss)} sub={`${totalHours.toFixed(1)} h totales`} color="text-app-text-bright" />
-      </div>
-
-      <div className="grid grid-cols-3 gap-3">
-        <StatCard label="CTL (fitness)" value={latest?.ctl ?? 0} sub="carga cronica, 42 dias" color="text-bike" />
-        <StatCard label="ATL (fatiga)" value={latest?.atl ?? 0} sub="carga aguda, 7 dias" color="text-nutri" />
-        <StatCard label="TSB (forma)" value={latest?.tsb ?? 0} sub={latest ? tsbLabel(latest.tsb) : "-"} color="text-run" />
+        <StatCard label="tss_total_mes" value={Math.round(totalTss)} sub={`${(totalDurationMin / 60).toFixed(1)} h totales`} color="text-app-text-bright" />
       </div>
 
       <TrainingCharts pmc={pmc} />
